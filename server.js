@@ -5,7 +5,7 @@ const PORT = 3001;
 app.use(exspress.json());
 
 app.get('/', (req, res) => {
-    res.send('GlowList Backend API berjalan! ');
+    res.send('GlowList Backend sudah berjalan! ');
 });
 
 app.listen(PORT, () => {
