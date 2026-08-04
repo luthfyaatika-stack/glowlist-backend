@@ -33,7 +33,7 @@ app.get('/produk', (req, res) => {
 });
 
 app.get('/kategori', (req, res) => {
-    const sql = 'SELECT * FROM produk';
+    const sql = 'SELECT * FROM kategori';
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: err });
         res.json(results);
