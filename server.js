@@ -24,6 +24,23 @@ app.get('/', (req, res) => {
     res.send('GlowList Backend sudah berjalan! ');
 });
 
+app.get('/produk', (req, res) => {
+    const sql = 'SELECT * FROM produk';
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: err });
+        res.json(results);
+    });
+});
+
+app.get('/kategori', (req, res) => {
+    const sql = 'SELECT * FROM produk';
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: err });
+        res.json(results);
+    });
+});
+
+
 app.listen(PORT, () => {
     console.log(`Server GlowList jalan di http://localhost:${PORT}`);
 });
