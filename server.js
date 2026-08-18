@@ -1,7 +1,9 @@
 const exspress = require('express');
 const cors = require('cors')
+const jwt = require('jsonwebtoken');
 const app = exspress();
 const mysql = require('mysql2');
+
 
 app.use(cors())
 app.use(exspress.json());
@@ -134,6 +136,39 @@ app.post('/pengguna', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: 'Gagal mengenkripsikan password' });
     }
+});
+
+//////////ROUTE POST/LOGIN/////////////
+app.post('/login', (req, res) => {
+    const { email, password } = req.body;
+    const sql = 'SELECT * FROM pengguna WHERE email =?';
+
+    db.query(sql, [email], (err, result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        if (result.length === 0) {
+            return res.status(404).json({ message: 'maaf akun tidak ditemukan' });
+        }
+
+        const user = result[0];
+        const passwordIsValid = bcrypt.compareSync(password, user.password);
+
+        if (!passwordIsValid) {
+            return res.status(401).json({ message: 'password salah coba lagi' });
+        }
+
+        const token = jwt.sign(
+            { id: user.id_pengguna },
+            'glowlistrahasia',
+            { expiresIn: 86400 }
+        );
+
+        res.status(200).json({
+            auth: true,
+            token,
+            id_pengguna: user.id_pengguna,
+            nama: user.nama
+        });
+    });
 });
 
 app.listen(PORT, () => {
