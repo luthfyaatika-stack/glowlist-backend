@@ -56,7 +56,7 @@ app.get('/kategori', (req, res) => {
 });
 
 
-app.post('/produk', (req, res) => {
+app.post('/produk', authJWT,(req, res) => {
     const { judul, deskripsi, harga, id_kategori } = req.body;
 
     if (!deskripsi) {
@@ -74,7 +74,7 @@ app.post('/produk', (req, res) => {
 });
 
 /////////////PUT Produk///////////
-app.put("/produk/:id_produk", authJWT, (req, res) => {
+app.put("/produk/:id_produk", (req, res) => {
     const { id_produk } = req.params;
     const { judul, deskripsi, harga, id_kategori } = req.body;
 
