@@ -3,7 +3,7 @@ const cors = require('cors')
 const jwt = require('jsonwebtoken');
 const app = exspress();
 const mysql = require('mysql2');
-
+const authJWT = require('./middleware');
 
 app.use(cors())
 app.use(exspress.json());
@@ -73,6 +73,7 @@ app.post('/produk', (req, res) => {
     });
 });
 
+/////////////PUT Produk///////////
 app.put("/produk/:id_produk", (req, res) => {
     const { id_produk } = req.params;
     const { judul, deskripsi, harga, id_kategori } = req.body;
@@ -95,7 +96,7 @@ app.put("/produk/:id_produk", (req, res) => {
     });
 });
 
-app.delete('/produk/:id_produk', (req, res) => {
+app.delete('/produk/:id_produk', authJWT, (req, res) => {
     const { id_produk } = req.params;
     const sql = 'DELETE FROM produk WHERE id_produk = ?';
     db.query(sql, [id_produk], (err, result) => {
