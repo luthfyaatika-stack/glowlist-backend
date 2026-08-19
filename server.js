@@ -56,15 +56,16 @@ app.get('/kategori', (req, res) => {
 });
 
 
-app.post('/produk', authJWT,(req, res) => {
+app.post('/produk', XMLHttpRequest,Upload.single('file'), (req, res) => {
     const { judul, deskripsi, harga, id_kategori } = req.body;
+    const nama_file = req.file ? req.file.filename : null;
 
-    if (!deskripsi) {
-        return res.status(400).json({ message: 'deskripsi wajib diisi '});
+    if (!judul || !harga) {
+        return res.status(400).json({ message: 'judul dan harga wajib diisi ' });
     }
 
-    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, tgl_input) VALUES (?, ?, ?, ?, NOW())';
-    db.query(sql, [judul, deskripsi, harga, id_kategori], (err, result) => {
+    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, nama_file, tgl_input) VALUES (?, ?, ?, ?, ?, NOW())';
+    db.query(sql, [judul, deskripsi, harga, id_kategori, nama_file], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json({
             message: 'produk berhasil ditambahkan!🤪',
