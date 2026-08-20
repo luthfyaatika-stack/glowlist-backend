@@ -122,7 +122,7 @@ app.get('/kategori', (req, res) => {
 
 // ==================== POST PRODUK ====================
 
-app.post('/produk', authJWT, upload.single('file'), (req, res) => {
+app.post('/produk', authJWT, upload.single('nama_file'), (req, res) => {
     const {
         judul,
         deskripsi,
