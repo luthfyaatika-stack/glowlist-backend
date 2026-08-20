@@ -1,28 +1,42 @@
-const exspress = require('express');
-const cors = require('cors')
+const express = require('express');
+const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const app = exspress();
 const mysql = require('mysql2');
-const authJWT = require('./middleware');
 const path = require('path');
-const multer = multer('multer');
+const multer = require('multer');
 const bcrypt = require('bcrypt');
+const authJWT = require('./middleware');
+
+const app = express();
+const PORT = 3001;
 const saltRounds = 10;
 
-app.use(cors())
-app.use
+// ==================== MIDDLEWARE ====================
 
-app.use('/uploads', exspress.static(Path.join(process.cwd(), 'Upload')));
+app.use(cors());
+app.use(express.json());
+
+// Folder upload
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// ==================== MULTER / UPLOAD ====================
 
 const storage = multer.diskStorage({
-    destinatin: (req, file, cb) => {
+    destination: (req, file, cb) => {
         cb(null, 'uploads/');
     },
+
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() +'-' + Math.round(matchMedia.random() *1e9);
+        const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+
         cb(null, uniqueSuffix + '-' + file.originalname);
-    },
-}); 
+    }
+});
+
+const upload = multer({ storage });
+
+// ==================== DATABASE ====================
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -31,169 +45,356 @@ const db = mysql.createConnection({
     database: 'glowlist_db'
 });
 
-db.connect(err => {
+db.connect((err) => {
     if (err) {
         console.error('Gagal konek ke database:', err);
     } else {
         console.log('Berhasil konek ke database Glowlist');
     }
 });
-const PORT = 3001;
 
-app.use(exspress.json());
+// ==================== HOME ====================
 
 app.get('/', (req, res) => {
-    res.send('GlowList Backend sudah berjalan dengan mulus! ');
+    res.send('GlowList Backend sudah berjalan dengan mulus!');
 });
 
+// ==================================================
+//                     PRODUK
+// ==================================================
+
+// GET semua produk
 app.get('/produk', (req, res) => {
     const sql = 'SELECT * FROM produk';
+
     db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: err });
+        if (err) {
+            return res.status(500).json({
+                error: err.sqlMessage
+            });
+        }
+
         res.json(results);
     });
 });
 
+// GET produk berdasarkan ID
 app.get('/produk/:id_produk', (req, res) => {
     const { id_produk } = req.params;
+
     const sql = 'SELECT * FROM produk WHERE id_produk = ?';
+
     db.query(sql, [id_produk], (err, results) => {
-        if (err) return res.status(500).json({ error: err });
-            res.json(results);
+        if (err) {
+            return res.status(500).json({
+                error: err.sqlMessage
+            });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({
+                message: 'Produk tidak ditemukan'
+            });
+        }
+
+        res.json(results[0]);
     });
 });
 
+// GET kategori
 app.get('/kategori', (req, res) => {
     const sql = 'SELECT * FROM kategori';
+
     db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: err });
+        if (err) {
+            return res.status(500).json({
+                error: err.sqlMessage
+            });
+        }
+
         res.json(results);
     });
 });
 
+// ==================== POST PRODUK ====================
 
-app.post('/produk', authJWT, Upload.single('file'), (req, res) => {
-    const { judul, deskripsi, harga, id_kategori } = req.body;
+app.post('/produk', authJWT, upload.single('file'), (req, res) => {
+    const {
+        judul,
+        deskripsi,
+        harga,
+        id_kategori
+    } = req.body;
+
     const nama_file = req.file ? req.file.filename : null;
 
     if (!judul || !harga) {
-        return res.status(400).json({ message: 'judul dan harga wajib diisi ' });
+        return res.status(400).json({
+            message: 'Judul dan harga wajib diisi'
+        });
     }
 
     if (!deskripsi) {
-        return res.status(400).json({ message: 'Deskripsi wajib diisi' });
-    }
-
-    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, nama_file, tgl_input) VALUES (?, ?, ?, ?, /< NOW())';
-    db.query(sql, [judul, deskripsi, harga, id_kategori], (err, result) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage });
-        res.json({
-            message: 'produk berhasil ditambahkan!🤪',
-            id_produk: result.insertId
+        return res.status(400).json({
+            message: 'Deskripsi wajib diisi'
         });
-    });
-});
-
-/////////////PUT Produk///////////
-app.put("/produk/:id_produk", (req, res) => {
-    const { id_produk } = req.params;
-    const { judul, deskripsi, harga, id_kategori } = req.body;
-
-    if (!judul || !harga) {
-        return res.status(400).json({ message: 'Judul dan harga wajib diisi '});
     }
 
-    const sql = `UPDATE produk SET judul=?, deskripsi=?, harga=?, id_kategori=? WHERE id_produk=?`;
-    db.query(sql, [judul, deskripsi, harga, id_kategori, id_produk], (err, result) => {
-        if (err) return res.status(500).json({ error: err,sqlMessage });
+    const sql = `
+        INSERT INTO produk
+        (judul, deskripsi, harga, id_kategori, nama_file, tgl_input)
+        VALUES (?, ?, ?, ?, ?, NOW())
+    `;
 
-        // cek apakah ada data yang berubah// 
-        if (result.affectedRows === 0) {
-            return res.status(400).json({
-                message: "Produk tidak ditemukan."
+    db.query(
+        sql,
+        [judul, deskripsi, harga, id_kategori, nama_file],
+        (err, result) => {
+            if (err) {
+                return res.status(500).json({
+                    error: err.sqlMessage
+                });
+            }
+
+            res.json({
+                message: 'Produk berhasil ditambahkan!',
+                id_produk: result.insertId
             });
         }
-        res.json({ message: "Produk berhasil diupdate!" });
-    });
+    );
 });
+
+// ==================== PUT PRODUK ====================
+
+app.put('/produk/:id_produk', authJWT, (req, res) => {
+    const { id_produk } = req.params;
+
+    const {
+        judul,
+        deskripsi,
+        harga,
+        id_kategori
+    } = req.body;
+
+    if (!judul || !harga) {
+        return res.status(400).json({
+            message: 'Judul dan harga wajib diisi'
+        });
+    }
+
+    const sql = `
+        UPDATE produk
+        SET judul = ?,
+            deskripsi = ?,
+            harga = ?,
+            id_kategori = ?
+        WHERE id_produk = ?
+    `;
+
+    db.query(
+        sql,
+        [judul, deskripsi, harga, id_kategori, id_produk],
+        (err, result) => {
+            if (err) {
+                return res.status(500).json({
+                    error: err.sqlMessage
+                });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({
+                    message: 'Produk tidak ditemukan'
+                });
+            }
+
+            res.json({
+                message: 'Produk berhasil diupdate!'
+            });
+        }
+    );
+});
+
+// ==================== DELETE PRODUK ====================
 
 app.delete('/produk/:id_produk', authJWT, (req, res) => {
     const { id_produk } = req.params;
-    const sql = 'DELETE FROM produk WHERE id_produk = ?';
-    db.query(sql, [id_produk], (err, result) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage });
 
-        //cek apakah ada data yang terhapus//
-        if (result.affectedRows === 0) {
-            return res.status(400).json({
-                message: 'Produk tidak ditemukan.'
+    const sql = 'DELETE FROM produk WHERE id_produk = ?';
+
+    db.query(sql, [id_produk], (err, result) => {
+        if (err) {
+            return res.status(500).json({
+                error: err.sqlMessage
             });
         }
-        
-        res.json({ message: 'produk berhasil dihapus!' });
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                message: 'Produk tidak ditemukan'
+            });
+        }
+
+        res.json({
+            message: 'Produk berhasil dihapus!'
+        });
     });
 });
 
-//////////ROUTE POST PENGGUNA////////
-const bcrypt = require('bcrypt');
-const multer = require('multer');
-const saltRounds = 10;
+// ==================================================
+//                    PENGGUNA
+// ==================================================
+
+// ==================== REGISTER ====================
 
 app.post('/pengguna', async (req, res) => {
-    const { nama, email, password, no_hp } = req.body;
+    const {
+        nama,
+        email,
+        password,
+        no_hp
+    } = req.body;
 
     if (!nama || !email || !password) {
-        return res.status(400).json({ message: 'Nama, email, dan password wajib diisi' });
+        return res.status(400).json({
+            message: 'Nama, email, dan password wajib diisi'
+        });
     }
 
     try {
-        const hanshedPassword = await bcrypt.hash(password, saltRounds);
-        const sql = 'INSERT INTO pengguna (nama, email, password, no_hp) VALUES (?, ?, ?, ?)';
-        db.query(sql, [nama, email, hanshedPassword, no_hp], (err, result) => {
-            if (err) return res.status(500).json({ error: err.sqlMessage });
-            res.json({
-                message: 'Akun lutpi berhasil di buat',
-                id_pengguna: result.insertId
-            });
+        // Cek email sudah digunakan atau belum
+        const cekEmail = 'SELECT * FROM pengguna WHERE email = ?';
+
+        db.query(cekEmail, [email], async (err, result) => {
+            if (err) {
+                return res.status(500).json({
+                    error: err.sqlMessage
+                });
+            }
+
+            if (result.length > 0) {
+                return res.status(400).json({
+                    message: 'Email sudah digunakan'
+                });
+            }
+
+            // Hash password
+            const hashedPassword = await bcrypt.hash(
+                password,
+                saltRounds
+            );
+
+            const sql = `
+                INSERT INTO pengguna
+                (nama, email, password, no_hp)
+                VALUES (?, ?, ?, ?)
+            `;
+
+            db.query(
+                sql,
+                [nama, email, hashedPassword, no_hp],
+                (err, result) => {
+                    if (err) {
+                        return res.status(500).json({
+                            error: err.sqlMessage
+                        });
+                    }
+
+                    res.json({
+                        message: 'Akun berhasil dibuat',
+                        id_pengguna: result.insertId
+                    });
+                }
+            );
         });
+
     } catch (err) {
-        res.status(500).json({ error: 'Gagal mengenkripsikan password' });
+        console.error(err);
+
+        res.status(500).json({
+            error: 'Gagal mengenkripsikan password'
+        });
     }
 });
 
-//////////ROUTE POST/LOGIN/////////////
-app.post('/login', (req, res) => {
-    const { email, password } = req.body;
-    const sql = 'SELECT * FROM pengguna WHERE email =?';
+// ==================== LOGIN ====================
 
-    db.query(sql, [email], (err, result) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage });
+app.post('/login', (req, res) => {
+    const {
+        email,
+        password
+    } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({
+            message: 'Email dan password wajib diisi'
+        });
+    }
+
+    const sql = 'SELECT * FROM pengguna WHERE email = ?';
+
+    db.query(sql, [email], async (err, result) => {
+        if (err) {
+            return res.status(500).json({
+                error: err.sqlMessage
+            });
+        }
+
         if (result.length === 0) {
-            return res.status(404).json({ message: 'maaf akun tidak ditemukan' });
+            return res.status(404).json({
+                message: 'Maaf, akun tidak ditemukan'
+            });
         }
 
         const user = result[0];
-        const passwordIsValid = bcrypt.compareSync(password, user.password);
 
-        if (!passwordIsValid) {
-            return res.status(401).json({ message: 'password salah coba lagi' });
+        try {
+            // Membandingkan password
+            const passwordIsValid = await bcrypt.compare(
+                password,
+                user.password
+            );
+
+            if (!passwordIsValid) {
+                return res.status(401).json({
+                    message: 'Password salah, coba lagi'
+                });
+            }
+
+            // Membuat JWT
+            const token = jwt.sign(
+                {
+                    id: user.id_pengguna
+                },
+                'glowlistrahasia',
+                {
+                    expiresIn: '1d'
+                }
+            );
+
+            res.status(200).json({
+                auth: true,
+                token: token,
+                id_pengguna: user.id_pengguna,
+                nama: user.nama,
+                email: user.email
+            });
+
+        } catch (error) {
+            console.error(error);
+
+            res.status(500).json({
+                message: 'Terjadi kesalahan saat login'
+            });
         }
-
-        const token = jwt.sign(
-            { id: user.id_pengguna },
-            'glowlistrahasia',
-            { expiresIn: 86400 }
-        );
-
-        res.status(200).json({
-            auth: true,
-            token,
-            id_pengguna: user.id_pengguna,
-            nama: user.nama
-        });
     });
 });
 
+// ==================================================
+//                    RUN SERVER
+// ==================================================
+
 app.listen(PORT, () => {
-    console.log(`Server GlowList jalan di http://localhost:${PORT}`);
+    console.log(
+        `Server GlowList jalan di http://localhost:${PORT}`
+    );
 });
