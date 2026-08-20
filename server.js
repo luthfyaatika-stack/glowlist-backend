@@ -4,9 +4,25 @@ const jwt = require('jsonwebtoken');
 const app = exspress();
 const mysql = require('mysql2');
 const authJWT = require('./middleware');
+const path = require('path');
+const multer = multer('multer');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 app.use(cors())
-app.use(exspress.json());
+app.use
+
+app.use('/uploads', exspress.static(Path.join(process.cwd(), 'Upload')));
+
+const storage = multer.diskStorage({
+    destinatin: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() +'-' + Math.round(matchMedia.random() *1e9);
+        cb(null, uniqueSuffix + '-' + file.originalname);
+    },
+}); 
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -56,7 +72,7 @@ app.get('/kategori', (req, res) => {
 });
 
 
-app.post('/produk', XMLHttpRequest,Upload.single('file'), (req, res) => {
+app.post('/produk', authJWT, Upload.single('file'), (req, res) => {
     const { judul, deskripsi, harga, id_kategori } = req.body;
     const nama_file = req.file ? req.file.filename : null;
 
@@ -64,8 +80,12 @@ app.post('/produk', XMLHttpRequest,Upload.single('file'), (req, res) => {
         return res.status(400).json({ message: 'judul dan harga wajib diisi ' });
     }
 
-    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, nama_file, tgl_input) VALUES (?, ?, ?, ?, ?, NOW())';
-    db.query(sql, [judul, deskripsi, harga, id_kategori, nama_file], (err, result) => {
+    if (!deskripsi) {
+        return res.status(400).json({ message: 'Deskripsi wajib diisi' });
+    }
+
+    const sql = 'INSERT INTO produk (judul, deskripsi, harga, id_kategori, nama_file, tgl_input) VALUES (?, ?, ?, ?, /< NOW())';
+    db.query(sql, [judul, deskripsi, harga, id_kategori], (err, result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json({
             message: 'produk berhasil ditambahkan!🤪',
@@ -116,6 +136,7 @@ app.delete('/produk/:id_produk', authJWT, (req, res) => {
 
 //////////ROUTE POST PENGGUNA////////
 const bcrypt = require('bcrypt');
+const multer = require('multer');
 const saltRounds = 10;
 
 app.post('/pengguna', async (req, res) => {
