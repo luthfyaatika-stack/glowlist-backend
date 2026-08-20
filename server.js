@@ -115,7 +115,7 @@ app.get('/kategori', (req, res) => {
 
 // ==================== POST PRODUK ====================
 
-app.post('/produk', authJWT, upload.single('nama_file'), (req, res) => {
+app.post('/produk', authJWT, upload.single('file'), (req, res) => {
     const {
         judul,
         deskripsi,
@@ -214,26 +214,37 @@ app.put('/produk/:id_produk', authJWT, (req, res) => {
 
 // ==================== DELETE PRODUK ====================
 
-app.delete('/produk/:id_produk', authJWT, (req, res) => {
+app.delete('/produk/:id_produk', (req, res) => {
     const { id_produk } = req.params;
+
+    console.log("DELETE ID:", id_produk);
 
     const sql = 'DELETE FROM produk WHERE id_produk = ?';
 
     db.query(sql, [id_produk], (err, result) => {
+
         if (err) {
+            console.error("ERROR DELETE:", err);
+
             return res.status(500).json({
+                success: false,
+                message: "Gagal menghapus produk",
                 error: err.sqlMessage
             });
         }
 
         if (result.affectedRows === 0) {
             return res.status(404).json({
-                message: 'Produk tidak ditemukan'
+                success: false,
+                message: "Produk tidak ditemukan"
             });
         }
 
-        res.json({
-            message: 'Produk berhasil dihapus!'
+        console.log("Produk berhasil dihapus:", id_produk);
+
+        return res.status(200).json({
+            success: true,
+            message: "Produk berhasil dihapus!"
         });
     });
 });
