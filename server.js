@@ -2,8 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2');
-const path = require('path');
 const multer = require('multer');
+const path = require('path');
 const bcrypt = require('bcrypt');
 const authJWT = require('./middleware');
 
@@ -25,16 +25,13 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
     },
-
     filename: (req, file, cb) => {
-        const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         cb(null, uniqueSuffix + '-' + file.originalname);
     }
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage : storage });
 
 // ==================== DATABASE ====================
 
@@ -118,7 +115,7 @@ app.get('/kategori', (req, res) => {
 
 // ==================== POST PRODUK ====================
 
-app.post('/produk', authJWT, upload.single('file'), (req, res) => {
+app.post('/produk', authJWT, upload.single('nama_file'), (req, res) => {
     const {
         judul,
         deskripsi,
@@ -127,6 +124,7 @@ app.post('/produk', authJWT, upload.single('file'), (req, res) => {
     } = req.body;
 
     const nama_file = req.file ? req.file.filename : null;
+    
 
     if (!judul || !harga) {
         return res.status(400).json({

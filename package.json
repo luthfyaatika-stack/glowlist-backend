@@ -25,5 +25,8 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
     "mysql2": "^3.23.3"
+  },
+  "allowScripts": {
+    "bcrypt@6.0.0": true
   }
 }
