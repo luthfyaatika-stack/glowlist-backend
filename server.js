@@ -107,10 +107,14 @@ app.get('/kategori', (req, res) => {
 
     db.query(sql, (err, results) => {
         if (err) {
+            console.error('Error kategori:', err);
+
             return res.status(500).json({
                 error: err.sqlMessage
             });
         }
+
+        console.log('Data kategori:', results);
 
         res.json(results);
     });
